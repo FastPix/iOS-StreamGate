@@ -1,0 +1,15 @@
+{
+  "originHash" : "9f542b55a37f745de8db7d35cce22bb61890575b94b428741bad36ea048fd20c",
+  "pins" : [
+    {
+      "identity" : "ios-uploads",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FastPix/iOS-Uploads.git",
+      "state" : {
+        "revision" : "5cddaf56ce3f1d47c69ce888bb51892c04050b59",
+        "version" : "1.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
