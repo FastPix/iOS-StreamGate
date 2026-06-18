@@ -1,6 +1,6 @@
 import Foundation
 
-private let apiKey: String = "https://api.fastpix.io/v1/on-demand/upload"
+private let apiKey: String = "https://api.fastpix.com/v1/on-demand/upload"
 
 private let accessTokenID: String = ProcessInfo.processInfo.environment["ACCESS_TOKEN_ID"] ?? ""
 private let secretKey: String = ProcessInfo.processInfo.environment["SECRET_KEY"] ?? ""
@@ -80,7 +80,7 @@ final class UploadService {
         ).base64EncodedString()
 
         guard let url = URL(
-            string: "https://api.fastpix.io/v1/on-demand/\(uploadId)"
+            string: "https://api.fastpix.com/v1/on-demand/\(uploadId)"
         ) else {
             return nil
         }
@@ -131,7 +131,7 @@ final class UploadService {
     
     // Generates a full URL for a given endpoint in the FastPix Video public API
     private func fullURL(forEndpoint endpoint: String) throws -> URL {
-        let fullPath = "https://api.fastpix.io/v1/on-demand/\(endpoint)"
+        let fullPath = "https://api.fastpix.com/v1/on-demand/\(endpoint)"
         guard let url = URL(string: fullPath) else {
             throw CreateUploadError.custom("Bad endpoint: \(endpoint)")
         }

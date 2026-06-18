@@ -134,7 +134,7 @@ let secretKey = "YOUR_SECRET_KEY"
 
 For production builds, store credentials securely using environment variables or `xcconfig` files. Never commit credentials to version control.
 
-To get your FastPix API credentials visit: [Activate Your Account](https://fastpix.io/docs/getting-started/activate-your-account)
+To get your FastPix API credentials visit: [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account)
 
 ---
 
@@ -173,9 +173,9 @@ Product → Run
 
 ## Important Reference Links
 
-* FastPix Platform: [fastpix.io](https://fastpix.com)
-* FastPix Access Token Guide: [Activate Your Account](https://fastpix.io/docs/getting-started/activate-your-account)
-* FastPix VOD Upload API Docs: [Direct Upload Video Media](https://fastpix.io/docs/video-on-demand-api/upload-and-import-videos/direct-upload-video-media)
+* FastPix Platform: [fastpix.com](https://fastpix.com)
+* FastPix Access Token Guide: [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account)
+* FastPix VOD Upload API Docs: [Direct Upload Video Media](https://fastpix.com/docs/video-on-demand-api/upload-and-import-videos/direct-upload-video-media)
 * FastPix iOS Uploads SDK: [FastPix/iOS-Uploads](https://github.com/FastPix/iOS-Uploads)
 * Apple ReplayKit Docs: [ReplayKit — Apple Developer](https://developer.apple.com/documentation/replaykit)
 
