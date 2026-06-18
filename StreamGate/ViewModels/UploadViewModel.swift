@@ -115,7 +115,7 @@ final class UploadViewModel: NSObject,ObservableObject, UploadSDKErrorDelegate  
                     if let playbackId {
 
                         self.sharedURL =
-                        "https://stream.fastpix.io/\(playbackId).m3u8"
+                        "https://stream.fastpix.com/\(playbackId).m3u8"
 
                     }
 

@@ -64,7 +64,7 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "API_KEY"
-            value = "https://api.fastpix.io/v1/on-demand/upload"
+            value = "https://api.fastpix.com/v1/on-demand/upload"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
