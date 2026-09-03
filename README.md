@@ -28,52 +28,150 @@ Once an upload completes, StreamGate generates an instant, shareable playback li
 
 <br />
 
-## Prerequisites
+## Start here
 
-Before you build the project, make sure you have:
+If you are setting up this demo for the first time, follow these steps in order:
 
-- **Xcode** 15 or later. Note: the committed project was created with Xcode 26.5 and both targets set `IPHONEOS_DEPLOYMENT_TARGET = 26.0`, so as-is you need Xcode 26 and an iOS 26 device. To run on iOS 16 (which the app's code supports via `if #available(iOS 16.0, *)`), lower the deployment target to 16.0 on both targets.
-- A **physical iPhone** - ReplayKit Broadcast Extensions do not work reliably on the Simulator.
-- An **Apple Developer account** (for signing the app and the extension).
-- A **FastPix account** with an Access Token ID (Token ID) and a Secret Key.
+1. [Check your macOS version](#1-check-your-macos-version)
+2. [Check that Xcode is installed](#2-check-that-xcode-is-installed)
+3. [Connect a physical iPhone](#3-connect-a-physical-iphone)
+4. [Get your FastPix credentials](#4-get-your-fastpix-credentials)
+5. [Clone the repository](#5-clone-the-repository)
+6. [Verify the FastPix iOS Uploads SDK](#6-verify-the-fastpix-ios-uploads-sdk)
+7. [Verify App Groups on both targets](#7-verify-app-groups-on-both-targets)
+8. [Verify the broadcast extension identifier](#8-verify-the-broadcast-extension-identifier)
+9. [Configure your FastPix credentials](#9-configure-your-fastpix-credentials)
+10. [Build and run on your device](#10-build-and-run-on-your-device)
+11. [Record, upload, and verify it works](#11-record-upload-and-verify-it-works)
+
+Do not skip the verification commands. If a step's check fails, fix that problem before you continue.
 
 <br />
 
-## Get your FastPix credentials
+## Before you begin
+
+Make sure you have the following ready. This app uses a ReplayKit Broadcast Extension and the device camera, so it needs a real iPhone.
+
+| Requirement | Details |
+|---|---|
+| **A Mac with Xcode 26 or later** | Install the full Xcode app from the App Store. It provides the build tools, the Swift compiler, and Git. The committed project was created with Xcode 26.5. |
+| **A physical iPhone running iOS 26** | Both targets set an iOS 26 deployment target, and ReplayKit Broadcast Extensions do not work reliably on the Simulator, so you need a real device. |
+| **An Apple Developer account** | Needed to code-sign the main app **and** the broadcast extension for your device. |
+| **A FastPix account** | Free to create at the [FastPix Dashboard](https://dashboard.fastpix.com). |
+| **FastPix API credentials** | An Access Token ID (Token ID) and a Secret Key. |
+
+The app reads your credentials from two environment variables at runtime:
+
+| App environment variable | FastPix credential |
+|---|---|
+| `ACCESS_TOKEN_ID` | Access Token ID (Token ID) |
+| `SECRET_KEY` | Secret Key |
+
+> **Supported iOS versions:** The app's code supports **iOS 16.0+** (guarded with `if #available(iOS 16.0, *)`), but the committed project targets iOS 26. To run on an older OS, lower `IPHONEOS_DEPLOYMENT_TARGET` on **both** the `StreamGate` and `ScreenBroadcastExtension` targets in **Build Settings** (see [It will not build or install on iOS 16](#it-will-not-build-or-install-on-ios-16)).
+
+> **Security:** Never commit your Access Token ID or Secret Key to source control. Set them in your Xcode scheme.
+
+<br />
+
+## 1. Check your macOS version
+
+The build tools run on macOS. Confirm your version:
+
+```bash
+sw_vers
+```
+
+Output is similar to:
+
+```text
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+```
+
+Use a macOS version that supports Xcode 26. If macOS is too old, update it before you continue.
+
+<br />
+
+## 2. Check that Xcode is installed
+
+This project builds with the full Xcode app. Confirm the command line points at Xcode:
+
+```bash
+xcodebuild -version
+```
+
+Expected output is similar to:
+
+```text
+Xcode 26.6
+Build version 17F113
+```
+
+If instead you see `xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance`, point the command line at Xcode (this needs your password):
+
+```bash
+sudo xcode-select --switch /Applications/Xcode.app
+sudo xcodebuild -license accept
+```
+
+Then run `xcodebuild -version` again. Do not continue until it prints a version.
+
+<br />
+
+## 3. Connect a physical iPhone
+
+Screen recording relies on a ReplayKit Broadcast Extension, which does not work reliably on the Simulator, so run on a real iPhone. Connect and unlock your iPhone (tap **Trust This Computer** if prompted), then confirm the toolchain sees it:
+
+```bash
+xcrun xctrace list devices
+```
+
+Your iPhone appears under `== Devices ==` alongside any simulators.
+
+<br />
+
+## 4. Get your FastPix credentials
 
 The app authenticates to FastPix to create a signed direct-upload URL, so you need your API credentials:
 
 1. Sign up or log in and follow the [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account) guide.
 2. Copy your **Access Token ID** (Token ID) and **Secret Key**.
 
-You will set these as environment variables in Step 5. Never commit real credentials to version control.
+You set these as environment variables in [Configure your FastPix credentials](#9-configure-your-fastpix-credentials). Never commit real credentials to version control.
 
 <br />
 
-## Step 1: Clone the repository
+## 5. Clone the repository
 
 ```bash
 git clone https://github.com/FastPix/iOS-StreamGate.git
-cd StreamGate
+cd iOS-StreamGate
 open StreamGate.xcodeproj
 ```
 
+> The clone creates a folder named `iOS-StreamGate` (the repository name). `StreamGate.xcodeproj` and the `StreamGate/` source folder both live inside it, so run the commands from the `iOS-StreamGate` root.
+
 <br />
 
-## Step 2: Add the FastPix iOS Uploads SDK
+## 6. Verify the FastPix iOS Uploads SDK
 
-StreamGate uses the [FastPix iOS Uploads SDK](https://github.com/FastPix/iOS-Uploads) for resumable chunked uploads.
+StreamGate uses the [FastPix iOS Uploads SDK](https://github.com/FastPix/iOS-Uploads) for resumable chunked uploads. **The SDK is already integrated via Swift Package Manager**, so you don't need to add it manually - Xcode resolves it when you open the project.
 
-**Via Swift Package Manager:**
+To confirm it resolves from the command line, run this from the `iOS-StreamGate` root:
 
-1. In Xcode go to **File → Add Package Dependencies**
-2. Enter the package URL:
-   ```
-   https://github.com/FastPix/iOS-Uploads
-   ```
-3. Select the latest version and add it to the **StreamGate** main target
+```bash
+xcodebuild -project StreamGate.xcodeproj -scheme StreamGate -resolvePackageDependencies
+```
 
-After adding, verify the SDK appears under the main target's **Frameworks, Libraries, and Embedded Content** alongside `ScreenBroadcastExtension.appex`:
+The output confirms the package (the product is `fp-swift-upload-sdk`, module `fp_swift_upload_sdk`):
+
+```text
+Resolved source packages:
+  fp-swift-upload-sdk: https://github.com/FastPix/iOS-Uploads.git @ 1.0.2
+```
+
+In Xcode, you can also confirm the main **StreamGate** target lists both the SDK and the embedded extension under **Frameworks, Libraries, and Embedded Content**:
 
 ```
 Frameworks, Libraries, and Embedded Content
@@ -81,47 +179,35 @@ Frameworks, Libraries, and Embedded Content
 └── ScreenBroadcastExtension.appex    →  Embed Without Signing
 ```
 
-> `ScreenBroadcastExtension.appex` must be set to **Embed Without Signing** so iOS bundles the extension inside the main app at install time. Without this the broadcast picker will show no available extension.
+> `ScreenBroadcastExtension.appex` must be set to **Embed Without Signing** so iOS bundles the extension inside the main app at install time. Without this the broadcast picker shows no available extension.
 
-For full SDK setup instructions refer to the official guide: [Set up Resumable Uploads for iOS](https://fastpix.com/docs/upload-videos/set-up-resumable-uploads-for-ios)
-
-<br />
-
-## Step 3: Configure App Groups
-
-Enable the same App Group for both targets:
-
-**Main App Target**
-
-```
-Signing & Capabilities
-→ App Groups
-→ group.com.streamgate.broadcast
-```
-
-**ScreenBroadcastExtension Target**
-
-```
-Signing & Capabilities
-→ App Groups
-→ group.com.streamgate.broadcast
-```
-
-> The App Group identifier must match exactly on both targets. If they differ, the extension and main app write and read from different sandboxed directories and no recorded file will ever be detected.
-
-To learn more about App Groups and Broadcast Extensions refer to: [ReplayKit - Apple Developer Documentation](https://developer.apple.com/documentation/replaykit)
+For full SDK setup instructions, see [Set up Resumable Uploads for iOS](https://fastpix.com/docs/upload-videos/set-up-resumable-uploads-for-ios).
 
 <br />
 
-## Step 4: Configure the broadcast extension
+## 7. Verify App Groups on both targets
 
-Verify the Broadcast Extension Bundle Identifier:
+The `StreamGate` main app and the `ScreenBroadcastExtension` communicate through a shared App Group, which is already configured on both targets in the committed project. Confirm both use the **same** App Group under each target's **Signing & Capabilities → App Groups**:
+
+```
+group.com.streamgate.broadcast
+```
+
+> The App Group identifier must match exactly on both targets. If they differ, the extension and main app read and write different sandboxed directories, and no recorded file is ever detected.
+
+To learn more, see [ReplayKit - Apple Developer Documentation](https://developer.apple.com/documentation/replaykit).
+
+<br />
+
+## 8. Verify the broadcast extension identifier
+
+Confirm the broadcast extension's Bundle Identifier:
 
 ```
 com.streamgate.StreamGate.ScreenBroadcastExtension
 ```
 
-And ensure the same identifier is referenced in `BroadcastPickerView.swift`:
+The same identifier is referenced in `BroadCastPickerView.swift`:
 
 ```swift
 picker.preferredExtension = "com.streamgate.StreamGate.ScreenBroadcastExtension"
@@ -129,7 +215,7 @@ picker.preferredExtension = "com.streamgate.StreamGate.ScreenBroadcastExtension"
 
 <br />
 
-## Step 5: Configure your FastPix credentials
+## 9. Configure your FastPix credentials
 
 The app reads your FastPix credentials from environment variables at runtime via `ProcessInfo` (`ACCESS_TOKEN_ID` and `SECRET_KEY`). Set them in your Xcode scheme:
 
@@ -144,44 +230,27 @@ The app reads your FastPix credentials from environment variables at runtime via
 
 Never commit credentials to version control. Get your credentials from [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account).
 
-<br />
-
-## Step 6: Camera and microphone permissions
-
-The app already requests camera and microphone access (declared in its generated `Info.plist`), so no action is needed. For reference, these are the usage descriptions it presents:
-
-```xml
-<key>NSCameraUsageDescription</key>
-<string>Used to record videos.</string>
-
-<key>NSMicrophoneUsageDescription</key>
-<string>Used to record audio.</string>
-```
+The app already requests camera and microphone access (declared in its generated `Info.plist`), so no extra permission setup is needed. For reference, it presents `NSCameraUsageDescription` ("Used to record videos.") and `NSMicrophoneUsageDescription` ("Used to record audio.").
 
 <br />
 
-## Step 7: Build and run
+## 10. Build and run on your device
 
-**Using Xcode**
+In Xcode:
 
-1. Open `StreamGate.xcodeproj`
-2. Select a physical iPhone as the run destination
-3. Ensure your Apple Developer Team is selected for both:
+1. Open `StreamGate.xcodeproj`.
+2. Select your connected iPhone as the run destination.
+3. Under **Signing & Capabilities**, select your Apple Developer **Team** for **both** targets:
    * `StreamGate`
    * `ScreenBroadcastExtension`
-4. Verify App Groups are enabled on both targets:
-   * `group.com.streamgate.broadcast`
-5. Build and run:
+4. Confirm the App Group `group.com.streamgate.broadcast` is enabled on both targets.
+5. Build and run: **Product → Clean Build Folder**, then **Product → Run** (`⌘R`).
 
-```
-Product → Clean Build Folder
-Product → Build
-Product → Run
-```
+The first build compiles the Uploads SDK, so it can take a little longer. If the app does not launch on the device, open **Settings → General → VPN & Device Management** on the iPhone and trust your developer certificate, then run again.
 
 <br />
 
-## Verify it works
+## 11. Record, upload, and verify it works
 
 Record a video with the camera, or start a screen broadcast, then let the app upload it. On success:
 
@@ -207,18 +276,18 @@ If the upload does not start or no link appears, see [Troubleshooting](#troubles
 ## Troubleshooting
 
 ### The broadcast picker shows no extension
-Set `ScreenBroadcastExtension.appex` to **Embed Without Signing** in the main app target (see [Step 2](#step-2-add-the-fastpix-ios-uploads-sdk)). Without this, iOS does not bundle the extension and the picker is empty.
+Set `ScreenBroadcastExtension.appex` to **Embed Without Signing** in the main app target (see [Step 6](#6-verify-the-fastpix-ios-uploads-sdk)). Without this, iOS does not bundle the extension and the picker is empty.
 
 ### A recorded file is never detected
-The App Group identifier must match exactly on both targets (`group.com.streamgate.broadcast`). If they differ, the extension and app use different sandboxed directories. See [Step 3](#step-3-configure-app-groups).
+The App Group identifier must match exactly on both targets (`group.com.streamgate.broadcast`). If they differ, the extension and app use different sandboxed directories. See [Step 7](#7-verify-app-groups-on-both-targets).
 
 ### Upload fails or no shareable link appears
-1. Confirm the `ACCESS_TOKEN_ID` and `SECRET_KEY` environment variables are set in your Run scheme (see [Step 5](#step-5-configure-your-fastpix-credentials)).
+1. Confirm the `ACCESS_TOKEN_ID` and `SECRET_KEY` environment variables are set in your Run scheme (see [Step 9](#9-configure-your-fastpix-credentials)).
 2. Confirm the credentials are active in your [FastPix Dashboard](https://dashboard.fastpix.com) and not expired.
 3. Check network connectivity on the device.
 
 ### It will not build or install on iOS 16
-The committed project targets iOS 26.0. Lower `IPHONEOS_DEPLOYMENT_TARGET` to 16.0 on both the `StreamGate` and `ScreenBroadcastExtension` targets (see [Prerequisites](#prerequisites)).
+The committed project targets iOS 26.0. Lower `IPHONEOS_DEPLOYMENT_TARGET` to 16.0 on both the `StreamGate` and `ScreenBroadcastExtension` targets (see [Before you begin](#before-you-begin)).
 
 ### Screen recording does not work on the Simulator
 Use a physical iPhone - ReplayKit Broadcast Extensions are unreliable on the Simulator.
@@ -247,19 +316,19 @@ Browse everything in the [FastPix organization](https://github.com/orgs/FastPix/
 It records video (camera or full-screen ReplayKit recording) and uploads it directly to FastPix in resumable chunks, then returns a shareable playback link. See [What this app demonstrates](#what-this-app-demonstrates).
 
 **Why does it need a physical iPhone?**
-ReplayKit Broadcast Extensions do not work reliably on the Simulator. See [Prerequisites](#prerequisites).
+ReplayKit Broadcast Extensions do not work reliably on the Simulator. See [Before you begin](#before-you-begin).
 
 **Where do I get my Token ID and Secret Key?**
-From the FastPix Dashboard, via the [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account) guide. See [Get your FastPix credentials](#get-your-fastpix-credentials).
+From the FastPix Dashboard, via the [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account) guide. See [Get your FastPix credentials](#4-get-your-fastpix-credentials).
 
 **Where do I put my credentials?**
-Set `ACCESS_TOKEN_ID` and `SECRET_KEY` as environment variables in your Xcode Run scheme. See [Step 5](#step-5-configure-your-fastpix-credentials).
+Set `ACCESS_TOKEN_ID` and `SECRET_KEY` as environment variables in your Xcode Run scheme. See [Step 9](#9-configure-your-fastpix-credentials).
 
 **The broadcast picker is empty - why?**
 The broadcast extension is not embedded. Set it to Embed Without Signing. See [Troubleshooting](#troubleshooting).
 
 **Which iOS versions does it support?**
-The app's code supports iOS 16.0+, but the committed project currently targets iOS 26.0. See [Prerequisites](#prerequisites) for how to lower it.
+The app's code supports iOS 16.0+, but the committed project currently targets iOS 26.0. See [Before you begin](#before-you-begin) for how to lower it.
 
 **How do I add resumable uploads to my own app?**
 Use the FastPix iOS Uploads SDK directly. See [Which FastPix repo do I need?](#which-fastpix-repo-do-i-need)
