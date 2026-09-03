@@ -1,272 +1,241 @@
-# FastPix Live - iOS RTMP live streaming demo app (Swift, HaishinKit)
+# FastPix StreamGate - iOS screen recording and camera capture with direct-to-cloud uploads (SwiftUI)
 
-[![Platform: iOS](https://img.shields.io/badge/platform-iOS%2013%2B-000000?logo=apple&logoColor=white)](https://developer.apple.com/ios/)
-[![Swift](https://img.shields.io/badge/Swift-5.0-F05138?logo=swift&logoColor=white)](https://swift.org)
-[![license](https://img.shields.io/github/license/FastPix/fastpix-iOS-live-streaming-demo-application)](https://github.com/FastPix/fastpix-iOS-live-streaming-demo-application/blob/main/LICENSE)
-[![HaishinKit](https://img.shields.io/badge/RTMP-HaishinKit%201.7.1-informational)](https://github.com/shogo4405/HaishinKit.swift)
-[![FastPix Live](https://img.shields.io/badge/FastPix-Live%20Streaming-5D09C7)](https://dashboard.fastpix.com)
+[![Platform: iOS](https://img.shields.io/badge/platform-iOS%2016%2B-000000?logo=apple&logoColor=white)](https://developer.apple.com/ios/)
+[![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white)](https://swift.org)
+[![UI: SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0071E3?logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
+[![license](https://img.shields.io/github/license/FastPix/iOS-StreamGate)](https://github.com/FastPix/iOS-StreamGate/blob/main/LICENSE)
+[![FastPix iOS Uploads SDK](https://img.shields.io/badge/FastPix-iOS%20Uploads%20SDK-5D09C7)](https://github.com/FastPix/iOS-Uploads)
 
-An open-source iOS app that broadcasts live video from your iPhone camera to the FastPix Live platform over secure RTMPS, built with the [HaishinKit RTMP library](https://github.com/shogo4405/HaishinKit.swift). Use it as a working reference for adding camera-based live streaming, adaptive bitrate, network reconnection, and crash-safe camera switching to your own iOS app.
+StreamGate is an open-source iOS reference app that captures video (native camera or device-wide ReplayKit screen recording) and uploads it directly to the cloud in resumable chunks using the [FastPix iOS Uploads SDK](https://github.com/FastPix/iOS-Uploads), then returns an instant, shareable playback link. Use it as a working example of complex mobile media workflows.
 
-**Works with:** iOS 13+ · Swift · UIKit · CocoaPods · HaishinKit (RTMP/RTMPS) · FastPix Live · physical iPhone/iPad
+**Works with:** iOS 16+ · SwiftUI · ReplayKit · AVFoundation · FastPix iOS Uploads SDK · physical iPhone
 
-📖 **FastPix Live docs:** https://fastpix.com/docs &nbsp;·&nbsp; 🚀 **Dashboard:** https://dashboard.fastpix.com &nbsp;·&nbsp; ⚙️ **RTMP library:** https://github.com/shogo4405/HaishinKit.swift
-
-## Demo
-
-![FastPix Live Demo](FpLive/Assets.xcassets/demo.gif)
+📖 **Upload SDK docs:** https://fastpix.com/docs/upload-videos/set-up-resumable-uploads-for-ios &nbsp;·&nbsp; ⬆️ **Uploads SDK:** https://github.com/FastPix/iOS-Uploads &nbsp;·&nbsp; 🚀 **Dashboard:** https://dashboard.fastpix.com
 
 <br />
 
 ## What this app demonstrates
 
-FastPix Live is a reference implementation for camera-to-cloud live streaming on iOS. It shows how to:
+StreamGate is built with a modern iOS stack (100% Swift, SwiftUI, ReplayKit, AVFoundation) and shows how to:
 
-- **Broadcast over RTMPS** - secure live streaming to the FastPix Live platform
-- **Switch cameras live** - crash-safe front/back camera toggle during an active broadcast
-- **Survive network changes** - automatic reconnection on dropouts and WiFi to cellular handoff, with exponential backoff
-- **Adapt quality** - dynamic bitrate adjustment across four broadcasting profiles (1080p, 720p, 540p, 360p)
-- **Monitor the stream** - live FPS and bitrate readouts, plus a full streaming state machine (idle, connecting, publishing, reconnecting, and more)
-- **Keep the UI safe** - iOS 18-style notifications, haptics, screen wake lock, and thread-safe state handling
+1. **Camera capture** - record video natively with `UIImagePickerController`.
+2. **Screen recording** - capture device-wide screen activity with Apple's `ReplayKit` Broadcast Extension and `AVAssetWriter`, running reliably in a separate sandboxed process.
+3. **Direct cloud uploading** - push large media files to the cloud in resumable chunks with the FastPix iOS Uploads SDK, with no intermediary backend server.
+4. **Local playback / preview** - preview the recording with `AVPlayer` before the shareable link is generated.
+5. **Auto cleanup** - delete previous recordings before each new session to keep on-device storage low.
+
+Once an upload completes, StreamGate generates an instant, shareable playback link.
 
 <br />
 
 ## Prerequisites
 
-Before you start, make sure you have:
+Before you build the project, make sure you have:
 
-- A **Mac with Xcode** installed.
-- **CocoaPods** installed (`sudo gem install cocoapods`), used to pull HaishinKit and the other dependencies.
-- A **physical iPhone or iPad** running **iOS 13.0 or later**. The Simulator cannot access the camera, so streaming will not work on it.
-- An **Apple Developer account** to sign and run the app on your device.
-- A **FastPix account** with a live stream and its **RTMP stream key**.
-
-<br />
-
-## Get your FastPix stream key
-
-The app publishes to a FastPix live stream identified by your stream key, which you enter in the app at runtime:
-
-1. Sign up or log in at the [FastPix Dashboard](https://dashboard.fastpix.com/signup).
-2. Create a **live stream** and copy its unique **stream key**.
-
-You will paste this key into the app's setup screen the first time you broadcast. The RTMP endpoint itself is already configured in the app (see [About the RTMP endpoint](#about-the-rtmp-endpoint)), so the stream key is the only value you need.
+- **Xcode** 15 or later. Note: the committed project was created with Xcode 26.5 and both targets set `IPHONEOS_DEPLOYMENT_TARGET = 26.0`, so as-is you need Xcode 26 and an iOS 26 device. To run on iOS 16 (which the app's code supports via `if #available(iOS 16.0, *)`), lower the deployment target to 16.0 on both targets.
+- A **physical iPhone** - ReplayKit Broadcast Extensions do not work reliably on the Simulator.
+- An **Apple Developer account** (for signing the app and the extension).
+- A **FastPix account** with an Access Token ID (Token ID) and a Secret Key.
 
 <br />
 
-## Clone the repository
+## Get your FastPix credentials
+
+The app authenticates to FastPix to create a signed direct-upload URL, so you need your API credentials:
+
+1. Sign up or log in and follow the [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account) guide.
+2. Copy your **Access Token ID** (Token ID) and **Secret Key**.
+
+You will set these as environment variables in Step 5. Never commit real credentials to version control.
+
+<br />
+
+## Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/FastPix/fastpix-iOS-live-streaming-demo-application.git
-cd fastpix-iOS-live-streaming-demo-application
-```
-
-> The `Podfile`, `FpLive.xcworkspace`, and `FpLive.xcodeproj` all live at the repository root. Run the next commands from this cloned root folder, not from the inner `FpLive/` source folder.
-
-<br />
-
-## Install dependencies with CocoaPods
-
-This project uses CocoaPods (HaishinKit, Hue, Loaf). From the repository root, run:
-
-```bash
-pod install
+git clone https://github.com/FastPix/iOS-StreamGate.git
+cd StreamGate
+open StreamGate.xcodeproj
 ```
 
 <br />
 
-## Open and run the app
+## Step 2: Add the FastPix iOS Uploads SDK
 
-Open the generated workspace (not the `.xcodeproj`):
+StreamGate uses the [FastPix iOS Uploads SDK](https://github.com/FastPix/iOS-Uploads) for resumable chunked uploads.
 
-```bash
-open FpLive.xcworkspace
+**Via Swift Package Manager:**
+
+1. In Xcode go to **File → Add Package Dependencies**
+2. Enter the package URL:
+   ```
+   https://github.com/FastPix/iOS-Uploads
+   ```
+3. Select the latest version and add it to the **StreamGate** main target
+
+After adding, verify the SDK appears under the main target's **Frameworks, Libraries, and Embedded Content** alongside `ScreenBroadcastExtension.appex`:
+
+```
+Frameworks, Libraries, and Embedded Content
+├── fp-swift-upload-sdk
+└── ScreenBroadcastExtension.appex    →  Embed Without Signing
 ```
 
-Then in Xcode:
+> `ScreenBroadcastExtension.appex` must be set to **Embed Without Signing** so iOS bundles the extension inside the main app at install time. Without this the broadcast picker will show no available extension.
 
-1. Select the `FpLive` scheme and choose your connected iPhone/iPad as the run destination (not a Simulator).
-2. In **Signing & Capabilities**, select your Apple Developer Team so the app can be signed for your device.
-3. Build and run (`⌘R`).
+For full SDK setup instructions refer to the official guide: [Set up Resumable Uploads for iOS](https://fastpix.com/docs/upload-videos/set-up-resumable-uploads-for-ios)
 
 <br />
 
-## Start streaming and verify it works
+## Step 3: Configure App Groups
 
-1. Launch the app on your device and grant **camera** and **microphone** permission when prompted.
-2. On the setup screen, paste your FastPix **stream key** and start the broadcast.
-3. The app connects over RTMPS and begins publishing. You should see the live camera preview with real-time FPS and bitrate indicators, and the state move to `publishing`.
-4. Confirm the stream is live by watching it back from your [FastPix Dashboard](https://dashboard.fastpix.com) (or any player pointed at your stream's playback ID).
+Enable the same App Group for both targets:
 
-If you see a black screen or a connection failure, see [Troubleshooting](#troubleshooting).
+**Main App Target**
+
+```
+Signing & Capabilities
+→ App Groups
+→ group.com.streamgate.broadcast
+```
+
+**ScreenBroadcastExtension Target**
+
+```
+Signing & Capabilities
+→ App Groups
+→ group.com.streamgate.broadcast
+```
+
+> The App Group identifier must match exactly on both targets. If they differ, the extension and main app write and read from different sandboxed directories and no recorded file will ever be detected.
+
+To learn more about App Groups and Broadcast Extensions refer to: [ReplayKit - Apple Developer Documentation](https://developer.apple.com/documentation/replaykit)
 
 <br />
 
-## About the RTMP endpoint
+## Step 4: Configure the broadcast extension
 
-The app is preconfigured to publish to FastPix Live over secure RTMPS. The committed source connects to:
+Verify the Broadcast Extension Bundle Identifier:
 
-`rtmps://live.fastpix.com:443/live`
+```
+com.streamgate.StreamGate.ScreenBroadcastExtension
+```
 
-FastPix endpoints are migrating from the `.io` TLD to `.com`. The old `rtmps://live.fastpix.io:443/live` host continues to serve traffic temporarily for backward compatibility, but it is planned for future deprecation, so the `.com` endpoint above is recommended. You do not need to set this manually - it is already wired into the app.
+And ensure the same identifier is referenced in `BroadcastPickerView.swift`:
+
+```swift
+picker.preferredExtension = "com.streamgate.StreamGate.ScreenBroadcastExtension"
+```
 
 <br />
 
-## Streaming profiles
+## Step 5: Configure your FastPix credentials
 
-The app supports four broadcasting profiles, selectable in the UI:
+The app reads your FastPix credentials from environment variables at runtime via `ProcessInfo` (`ACCESS_TOKEN_ID` and `SECRET_KEY`). Set them in your Xcode scheme:
 
-```Swift
-enum Preset {
-  case hd_1080p_30fps_5mbps // Premium quality
-  case hd_720p_30fps_3mbps // High quality
-  case sd_540p_30fps_2mbps // Standard quality
-  case sd_360p_30fps_1mbps // Data-saver quality
-}
-```
+1. Go to **Product → Scheme → Edit Scheme** (or press `⌘ <`)
+2. Select the **Run** action → **Arguments** tab
+3. Under **Environment Variables**, add:
 
-> **Note:** At 1080p, older devices may drop frames to around 20 fps. Camera switching is intentionally disabled during connection states to prevent crashes, and rotation changes during reconnection may cause a connection to fail.
+| Name | Value |
+|------|-------|
+| `ACCESS_TOKEN_ID` | Your FastPix Token ID |
+| `SECRET_KEY` | Your FastPix Secret Key |
 
-<br />
-
-## Architecture overview
-
-### Core components
-
-**`LiveStreamViewController.swift`** - the main streaming interface, containing:
-
-- **Camera management**: safe switching between front/back cameras
-- **Stream control**: start/stop broadcasting with state management
-- **Network handling**: connection monitoring and automatic retry logic
-- **UI management**: modern controls with real-time feedback
-
-### Key classes
-
-- **`UltraModernNotificationView`** - iOS 18-style notifications with blur effects, haptic feedback, and auto-dismiss animations.
-- **`ModernNotificationManager`** - a centralized, thread-safe notification system with success/error/warning/info styles.
-- **`StreamState` enum** - comprehensive lifecycle state management with per-state UI behavior.
+Never commit credentials to version control. Get your credentials from [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account).
 
 <br />
 
-## Technical implementation
+## Step 6: Camera and microphone permissions
 
-### Stream setup process
+The app already requests camera and microphone access (declared in its generated `Info.plist`), so no action is needed. For reference, these are the usage descriptions it presents:
 
-**1. Permission handling**
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Used to record videos.</string>
 
-```Swift
-requestCameraPermission { [weak self] granted in
-    if granted {
-        self?.setupStreamingEngine()
-    } else {
-        DispatchQueue.main.async {
-            self?.showPermissionAlert()
-        }
-    }
-}
+<key>NSMicrophoneUsageDescription</key>
+<string>Used to record audio.</string>
 ```
 
-**2. RTMP configuration**
+<br />
 
-```Swift
-rtmpStream = RTMPStream(connection: rtmpConnection)
-configureStream(preset: self.preset)
-rtmpStream.attachCamera(cameraDevice)
-rtmpStream.attachAudio(audioDevice)
+## Step 7: Build and run
+
+**Using Xcode**
+
+1. Open `StreamGate.xcodeproj`
+2. Select a physical iPhone as the run destination
+3. Ensure your Apple Developer Team is selected for both:
+   * `StreamGate`
+   * `ScreenBroadcastExtension`
+4. Verify App Groups are enabled on both targets:
+   * `group.com.streamgate.broadcast`
+5. Build and run:
+
+```
+Product → Clean Build Folder
+Product → Build
+Product → Run
 ```
 
-**3. Connection management**
+<br />
 
-```Swift
-rtmpConnection.addEventListener(.rtmpStatus, selector: #selector(rtmpStatusHandler), observer: self)
-rtmpConnection.connect("rtmps://live.fastpix.com:443/live")
-```
+## Verify it works
 
-### Crash protection
+Record a video with the camera, or start a screen broadcast, then let the app upload it. On success:
 
-**Camera switching protection**
+- The app uploads the file to FastPix in resumable chunks and polls until the media reaches `status: ready`.
+- A shareable playback link appears in the form `https://stream.fastpix.com/<playbackId>.m3u8`.
 
-```Swift
-private var isCameraSwitching = false
-private var cameraAttachmentInProgress = false
+If the upload does not start or no link appears, see [Troubleshooting](#troubleshooting).
 
-private func attachCamera() {
-guard !isCameraSwitching && !cameraAttachmentInProgress else { return }
+<br />
 
-// Safe camera switching logic
+## Tech stack
 
-}
-```
-
-**Status interaction safety**
-
-```Swift
-private func handleConnectingStateInteraction() {
-guard isViewLoaded, view.window != nil, presentedViewController == nil else { return }
-
-// Safe UI interaction during connection states
-
-}
-```
-
-### Streaming state machine
-
-```Swift
-enum StreamState {
-  case idle // Ready to start streaming
-  case connecting // Attempting RTMP connection
-  case connected // Connected, starting stream
-  case publishing // Live streaming active
-  case reconnecting // Recovering from connection loss
-  case stopping // Ending stream gracefully
-  case waitingForNetwork // Poor network, waiting for improvement
-}
-```
-
-### Error handling and recovery
-
-- **Network change detection**: seamless transition between WiFi and cellular
-- **Connection timeout**: 15-second timeout with user options
-- **Poor network handling**: quality reduction and user notifications
-- **Thread safety**: all UI updates on the main thread with proper guards
-- **Debouncing**: prevents rapid button taps and concurrent operations
+* **Language**: Swift
+* **UI Framework**: SwiftUI
+* **Screen Capture**: ReplayKit (`RPBroadcastSampleHandler`, `RPSystemBroadcastPickerView`)
+* **Video Encoding**: AVFoundation (`AVAssetWriter`, H.264)
+* **Inter-process Communication**: App Groups (shared `UserDefaults` + shared filesystem)
+* **Uploading**: [FastPix iOS Uploads SDK](https://github.com/FastPix/iOS-Uploads)
+* **Build Constraints**: `iOS 16.0+`, Xcode 15+, real device required
 
 <br />
 
 ## Troubleshooting
 
-### "No Podfile found" when running `pod install`
-Run `pod install` from the repository **root** (`fastpix-iOS-live-streaming-demo-application/`), not from the inner `FpLive/` folder. The `Podfile` is at the root.
+### The broadcast picker shows no extension
+Set `ScreenBroadcastExtension.appex` to **Embed Without Signing** in the main app target (see [Step 2](#step-2-add-the-fastpix-ios-uploads-sdk)). Without this, iOS does not bundle the extension and the picker is empty.
 
-### Black screen during streaming
-- Confirm camera and microphone permissions are granted.
-- Verify your stream key is valid and copied correctly from the dashboard.
-- Restart the app.
+### A recorded file is never detected
+The App Group identifier must match exactly on both targets (`group.com.streamgate.broadcast`). If they differ, the extension and app use different sandboxed directories. See [Step 3](#step-3-configure-app-groups).
 
-### Connection failures
-- Check network connectivity and try a different network (WiFi or cellular).
-- Confirm the RTMPS endpoint `rtmps://live.fastpix.com:443/live` is reachable from your network.
-- Confirm the live stream is active in your [FastPix Dashboard](https://dashboard.fastpix.com).
+### Upload fails or no shareable link appears
+1. Confirm the `ACCESS_TOKEN_ID` and `SECRET_KEY` environment variables are set in your Run scheme (see [Step 5](#step-5-configure-your-fastpix-credentials)).
+2. Confirm the credentials are active in your [FastPix Dashboard](https://dashboard.fastpix.com) and not expired.
+3. Check network connectivity on the device.
 
-### Nothing happens on the Simulator
-Streaming and camera capture require a **physical device**. The Simulator has no camera and cannot broadcast.
+### It will not build or install on iOS 16
+The committed project targets iOS 26.0. Lower `IPHONEOS_DEPLOYMENT_TARGET` to 16.0 on both the `StreamGate` and `ScreenBroadcastExtension` targets (see [Prerequisites](#prerequisites)).
 
-### Camera switching crashes
-The app includes crash protection for camera switching. Avoid switching cameras rapidly during connection/reconnection states.
+### Screen recording does not work on the Simulator
+Use a physical iPhone - ReplayKit Broadcast Extensions are unreliable on the Simulator.
 
 <br />
 
 ## Which FastPix repo do I need?
 
-This app **broadcasts** live video from iOS. To play FastPix video or add other capabilities, use:
+StreamGate shows uploads plus screen/camera capture in a full app. For the underlying SDKs and other platforms, use:
 
 | I want to... | Repo |
 |---|---|
-| Play FastPix video (incl. live playback) in an iOS app | [iOS-player](https://github.com/FastPix/iOS-player) |
-| Play FastPix video on the web | [web-player-component](https://github.com/FastPix/web-player-component) |
+| Add resumable uploads to an iOS app (the SDK this demo uses) | [iOS-Uploads](https://github.com/FastPix/iOS-Uploads) |
+| Play FastPix video in an iOS app | [iOS-player](https://github.com/FastPix/iOS-player) |
 | Add playback QoE analytics for AVPlayer (iOS / tvOS) | [iOS-data-avplayer-sdk](https://github.com/FastPix/iOS-data-avplayer-sdk) |
-| Add resumable uploads to an iOS app | [iOS-Uploads](https://github.com/FastPix/iOS-Uploads) |
 | Add resumable uploads in the browser | [web-uploads-sdk](https://github.com/FastPix/web-uploads-sdk) |
+| Add a React uploader component | [react-web-uploader](https://github.com/FastPix/react-web-uploader) |
 
 Browse everything in the [FastPix organization](https://github.com/orgs/FastPix/repositories).
 
@@ -275,28 +244,38 @@ Browse everything in the [FastPix organization](https://github.com/orgs/FastPix/
 ## FAQ
 
 **What does this app do?**
-It broadcasts live video from an iPhone/iPad camera to FastPix Live over RTMPS, with adaptive bitrate and automatic reconnection. See [What this app demonstrates](#what-this-app-demonstrates).
+It records video (camera or full-screen ReplayKit recording) and uploads it directly to FastPix in resumable chunks, then returns a shareable playback link. See [What this app demonstrates](#what-this-app-demonstrates).
 
-**Which RTMP library does it use?**
-[HaishinKit](https://github.com/shogo4405/HaishinKit.swift) (locked to version 1.7.1 via CocoaPods).
+**Why does it need a physical iPhone?**
+ReplayKit Broadcast Extensions do not work reliably on the Simulator. See [Prerequisites](#prerequisites).
 
-**Where do I get my stream key?**
-Create a live stream in the [FastPix Dashboard](https://dashboard.fastpix.com) and copy its stream key. See [Get your FastPix stream key](#get-your-fastpix-stream-key).
+**Where do I get my Token ID and Secret Key?**
+From the FastPix Dashboard, via the [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account) guide. See [Get your FastPix credentials](#get-your-fastpix-credentials).
 
-**What RTMP endpoint does it stream to?**
-`rtmps://live.fastpix.com:443/live`, already configured in the app. See [About the RTMP endpoint](#about-the-rtmp-endpoint).
+**Where do I put my credentials?**
+Set `ACCESS_TOKEN_ID` and `SECRET_KEY` as environment variables in your Xcode Run scheme. See [Step 5](#step-5-configure-your-fastpix-credentials).
 
-**Why won't it work on the Simulator?**
-The Simulator has no camera. You need a physical iPhone or iPad running iOS 13.0+.
+**The broadcast picker is empty - why?**
+The broadcast extension is not embedded. Set it to Embed Without Signing. See [Troubleshooting](#troubleshooting).
 
-**Can I stream in 1080p?**
-Yes, but older devices may drop to around 20 fps at 1080p. Lower profiles (720p/540p/360p) are available for weaker networks or devices.
+**Which iOS versions does it support?**
+The app's code supports iOS 16.0+, but the committed project currently targets iOS 26.0. See [Prerequisites](#prerequisites) for how to lower it.
 
-**How do I play the live stream back?**
-Use a FastPix player - for iOS use [iOS-player](https://github.com/FastPix/iOS-player), or [web-player-component](https://github.com/FastPix/web-player-component) on the web. See [Which FastPix repo do I need?](#which-fastpix-repo-do-i-need)
+**How do I add resumable uploads to my own app?**
+Use the FastPix iOS Uploads SDK directly. See [Which FastPix repo do I need?](#which-fastpix-repo-do-i-need)
+
+<br />
+
+## Important reference links
+
+* FastPix Platform: [fastpix.com](https://fastpix.com)
+* FastPix Access Token Guide: [Activate Your Account](https://fastpix.com/docs/getting-started/activate-your-account)
+* FastPix VOD Upload API Docs: [Direct Upload Video Media](https://fastpix.com/docs/video-on-demand-api/upload-and-import-videos/direct-upload-video-media)
+* FastPix iOS Uploads SDK: [FastPix/iOS-Uploads](https://github.com/FastPix/iOS-Uploads)
+* Apple ReplayKit Docs: [ReplayKit - Apple Developer](https://developer.apple.com/documentation/replaykit)
 
 <br />
 
 ## License
 
-FastPix Live is released under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+StreamGate is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
